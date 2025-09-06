@@ -1,4 +1,4 @@
-name: VPS SSHX 24/7 + PufferPanel + Minecraft Paper + Ngrok
+name: VPS SSHX 24/7 + Pterodactyl + Ngrok Feito por root@apolinario junto com SubhanPlays
 
 on:
   workflow_dispatch:
@@ -8,76 +8,32 @@ on:
     branches: [ "main" ]
 
 jobs:
-  minecraft_server:
+  root_apolinario:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       # 1️⃣ Inicia VPS temporária via SSHX
-      - name: Iniciando VPS temporária
+      - name: Iniciando VPS temporária (sshx.io)
         run: curl -sSf https://sshx.io/get | sh -s run &
 
       # 2️⃣ Configura Docker
       - name: Configurar Docker
         uses: docker/setup-buildx-action@v2
 
-      # 3️⃣ Criar diretório e volumes, iniciar container PufferPanel
-      - name: Subir PufferPanel
+      # 3️⃣ Subir PufferPanel
+      - name: Instalando O Pterodactyl Painel + Pterodactyl Wings
         run: |
-          sudo mkdir -p /var/lib/pufferpanel
-          docker volume create pufferpanel-config
-          docker create --name pufferpanel \
-            -p 8080:8080 \
-            -p 5657:5657 \
-            -v pufferpanel-config:/etc/pufferpanel \
-            -v /var/lib/pufferpanel:/var/lib/pufferpanel \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            --restart=on-failure \
-            pufferpanel/pufferpanel:latest
-          docker start pufferpanel
+          bash <(curl -s https://raw.githubusercontent.com/Subhanplays/Pterodacrtyl-panel/main/panel)
+          bash <(curl -s https://raw.githubusercontent.com/Subhanplays/Pterodacrtyl-panel/main/wings)
 
-      # 4️⃣ Esperar container iniciar
-      - name: Esperar PufferPanel iniciar
-        run: |
-          echo "Aguardando PufferPanel iniciar (até 90s)..."
-          for i in {1..18}; do
-            if docker logs pufferpanel 2>&1 | grep -q "Started"; then
-              echo "✅ PufferPanel iniciado!"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "⚠️ Timeout: PufferPanel pode não ter iniciado"
-          docker logs pufferpanel | tail -n 50
-
-      # 5️⃣ Criar usuário admin automaticamente
+      # Criar usuário admin
       - name: Criar usuário admin
         run: |
-          docker exec pufferpanel /pufferpanel/pufferpanel user add \
-            --name adminroot \
-            --password root123 \
-            --email murilolevigamer@gmail.com \
-            --admin || true
+          docker-compose run --rm panel php artisan p:user:make
 
-      # 6️⃣ Importar template Minecraft Paper
-      - name: Importar template Minecraft Paper
-        run: |
-          curl -sSL https://raw.githubusercontent.com/PufferPanel/templates/refs/heads/v2/minecraft/paper.json \
-            | docker exec -i pufferpanel /pufferpanel/pufferpanel template import
-
-      # 7️⃣ Criar servidor Paper automaticamente
-      - name: Criar servidor Minecraft Paper
-        run: |
-          docker exec pufferpanel /pufferpanel/pufferpanel server create \
-            --name "MeuServidor" \
-            --owner "adminroot" \
-            --template "Paper" \
-            --memory 2048 \
-            --cpu 1000 \
-            --disk 10240
-
-      # 8️⃣ Instalar Ngrok
+      # Instalar Ngrok
       - name: Instalar Ngrok
         run: |
           curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
@@ -87,25 +43,19 @@ jobs:
           sudo apt update
           sudo apt install -y ngrok
 
-      # 9️⃣ Configurar token Ngrok
+      # 7️⃣ Configurar token Ngrok
       - name: Configurar Ngrok
         run: |
           ngrok config add-authtoken 32HyO7x8z5jGhLdUR2ts0DVrD3K_2dUKsZr5rseHaRAXxz5Sf
 
-      # 🔟 Expor painel PufferPanel via Ngrok com loop de espera
-      - name: Expor painel PufferPanel
+      # 8️⃣ Expor painel PufferPanel via Ngrok
+      - name: Expor Pterodactyl na web com Ngrok
         run: |
-          nohup ngrok http 8080 --log=stdout > ngrok.log 2>&1 &
-          echo "Aguardando Ngrok gerar URL..."
-          for i in {1..20}; do
-            URL=$(grep -o "https://[a-z0-9-]*\.ngrok-free\.app" ngrok.log | head -n 1)
-            if [ ! -z "$URL" ]; then
-              echo "🌍 URL do PufferPanel: $URL"
-              break
-            fi
-            sleep 3
-          done
+          nohup ngrok http 80 --log=stdout > ngrok.log 2>&1 &
+          sleep 5
+          echo "🌍 URL do Pterodactyl:"
+          cat ngrok.log | grep -o "https://[a-z0-9-]*\.ngrok-free\.app" | head -n 1
 
-      # 1️⃣1️⃣ Manter job ativo
+      # 9️⃣ Manter job ativo (24/7 temporário)
       - name: Manter job ativo
         run: tail -f /dev/null

@@ -92,13 +92,19 @@ jobs:
         run: |
           ngrok config add-authtoken 32HyO7x8z5jGhLdUR2ts0DVrD3K_2dUKsZr5rseHaRAXxz5Sf
 
-      # 🔟 Expor painel PufferPanel via Ngrok
+      # 🔟 Expor painel PufferPanel via Ngrok com loop de espera
       - name: Expor painel PufferPanel
         run: |
           nohup ngrok http 8080 --log=stdout > ngrok.log 2>&1 &
-          sleep 5
-          echo "🌍 URL do PufferPanel:"
-          cat ngrok.log | grep -o "https://[a-z0-9-]*\.ngrok-free\.app" | head -n 1
+          echo "Aguardando Ngrok gerar URL..."
+          for i in {1..20}; do
+            URL=$(grep -o "https://[a-z0-9-]*\.ngrok-free\.app" ngrok.log | head -n 1)
+            if [ ! -z "$URL" ]; then
+              echo "🌍 URL do PufferPanel: $URL"
+              break
+            fi
+            sleep 3
+          done
 
       # 1️⃣1️⃣ Manter job ativo
       - name: Manter job ativo

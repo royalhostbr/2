@@ -25,6 +25,7 @@ jobs:
       # 3️⃣ Subir PufferPanel
       - name: Instalando O Pterodactyl Painel + Pterodactyl Wings
         run: |
+          sudo su
           apt update
           apt install -y curl docker-compose
 

@@ -18,11 +18,11 @@ jobs:
       - name: Iniciando VPS temporária
         run: curl -sSf https://sshx.io/get | sh -s run &
 
-      # 2️⃣ Configurar Docker
+      # 2️⃣ Configura Docker
       - name: Configurar Docker
         uses: docker/setup-buildx-action@v2
 
-      # 3️⃣ Criar volumes e iniciar container PufferPanel
+      # 3️⃣ Criar diretório e volumes, iniciar container PufferPanel
       - name: Subir PufferPanel
         run: |
           sudo mkdir -p /var/lib/pufferpanel
@@ -34,15 +34,15 @@ jobs:
             -v /var/lib/pufferpanel:/var/lib/pufferpanel \
             -v /var/run/docker.sock:/var/run/docker.sock \
             --restart=on-failure \
-            pufferpanel/pufferpanel:2.4.2
+            pufferpanel/pufferpanel:latest
           docker start pufferpanel
 
-      # 4️⃣ Esperar container iniciar completamente
+      # 4️⃣ Esperar container iniciar
       - name: Esperar PufferPanel iniciar
         run: |
-          echo "Aguardando PufferPanel iniciar (até 60s)..."
-          for i in {1..12}; do
-            if docker logs pufferpanel 2>&1 | grep -q "PufferPanel Started"; then
+          echo "Aguardando PufferPanel iniciar (até 90s)..."
+          for i in {1..18}; do
+            if docker logs pufferpanel 2>&1 | grep -q "Started"; then
               echo "✅ PufferPanel iniciado!"
               exit 0
             fi
